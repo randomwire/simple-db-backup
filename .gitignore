@@ -1,0 +1,10 @@
+# IDE/OS
+.DS_Store
+.idea/
+.vscode/
+.claude/
+Thumbs.db
+*.log
+
+# Build artifacts
+dist/
