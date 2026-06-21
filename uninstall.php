@@ -37,6 +37,21 @@ foreach ( array(
 	wp_clear_scheduled_hook( $hook );
 }
 
+// Remove state created by the bundled Plugin Update Checker (slug == text
+// domain). It caches update data in a site option and schedules its own check.
+$sdb_slug = 'simple-db-backup';
+delete_site_option( 'external_updates-' . $sdb_slug );
+wp_clear_scheduled_hook( 'puc_cron_check_updates-' . $sdb_slug );
+
+// Sweep any leftover one-time admin notice transients (these normally expire on
+// their own within a minute).
+global $wpdb;
+$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	"DELETE FROM {$wpdb->options}
+	 WHERE option_name LIKE '\_transient\_simple\_db\_backup\_notice\_%'
+	    OR option_name LIKE '\_transient\_timeout\_simple\_db\_backup\_notice\_%'"
+);
+
 // Remove only our own files (backups + guards + stray credentials files), then
 // the directory if it ends up empty. We never blanket-delete folder contents,
 // since a custom path may sit alongside unrelated files.
