@@ -129,9 +129,9 @@ class Simple_DB_Backup_Settings {
 		);
 
 		add_settings_section(
-			'simple_db_backup_binaries',
-			__( 'MySQL binaries', 'simple-db-backup' ),
-			array( $this, 'render_binaries_section' ),
+			'simple_db_backup_paths',
+			__( 'Paths', 'simple-db-backup' ),
+			array( $this, 'render_paths_section' ),
 			self::PAGE_SLUG
 		);
 
@@ -140,7 +140,7 @@ class Simple_DB_Backup_Settings {
 			__( 'Path to mysqldump', 'simple-db-backup' ),
 			array( $this, 'render_text_field' ),
 			self::PAGE_SLUG,
-			'simple_db_backup_binaries',
+			'simple_db_backup_paths',
 			array( 'key' => 'mysqldump_path', 'placeholder' => '/usr/bin/mysqldump' )
 		);
 
@@ -149,15 +149,8 @@ class Simple_DB_Backup_Settings {
 			__( 'Path to mysql', 'simple-db-backup' ),
 			array( $this, 'render_text_field' ),
 			self::PAGE_SLUG,
-			'simple_db_backup_binaries',
+			'simple_db_backup_paths',
 			array( 'key' => 'mysql_path', 'placeholder' => '/usr/bin/mysql' )
-		);
-
-		add_settings_section(
-			'simple_db_backup_backups',
-			__( 'Backups', 'simple-db-backup' ),
-			array( $this, 'render_backups_section' ),
-			self::PAGE_SLUG
 		);
 
 		add_settings_field(
@@ -165,7 +158,14 @@ class Simple_DB_Backup_Settings {
 			__( 'Backup directory', 'simple-db-backup' ),
 			array( $this, 'render_backup_path_field' ),
 			self::PAGE_SLUG,
-			'simple_db_backup_backups'
+			'simple_db_backup_paths'
+		);
+
+		add_settings_section(
+			'simple_db_backup_backups',
+			__( 'Backups', 'simple-db-backup' ),
+			array( $this, 'render_backups_section' ),
+			self::PAGE_SLUG
 		);
 
 		add_settings_field(
@@ -317,12 +317,12 @@ class Simple_DB_Backup_Settings {
 	 * Field + section renderers
 	 * ------------------------------------------------------------------ */
 
-	public function render_binaries_section() {
-		echo '<p>' . esc_html__( 'Absolute paths to the mysqldump and mysql executables. They are validated before use; backups and restores require them.', 'simple-db-backup' ) . '</p>';
+	public function render_paths_section() {
+		echo '<p>' . esc_html__( 'Absolute paths to the mysqldump and mysql executables (required for backups and restores, and validated before use), and where backup files are stored.', 'simple-db-backup' ) . '</p>';
 	}
 
 	public function render_backups_section() {
-		echo '<p>' . esc_html__( 'Where backups are stored and how they are created.', 'simple-db-backup' ) . '</p>';
+		echo '<p>' . esc_html__( 'How backups are created.', 'simple-db-backup' ) . '</p>';
 	}
 
 	public function render_backup_path_field() {
