@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Simple DB Backup is a hardened, trimmed fork of WP-DBManager. It performs database backups (manual
+Simple DB Backup is a modern, security-hardened database tool inspired by WP-DBManager — an
+independent reimplementation that shares no code with it. It performs database backups (manual
 and scheduled via WP-Cron), restore, download/delete of backups, non-destructive optimize/repair,
-and shows read-only database info. Destructive features from the original (empty/drop tables,
+and shows read-only database info. The risky features WP-DBManager had (empty/drop tables,
 arbitrary SQL, backup email, global admin notices) are intentionally absent.
 
 GitHub-only plugin: it uses the workspace's standard GitHub-Releases auto-updater

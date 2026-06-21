@@ -3,9 +3,10 @@
 Safe, modern database backups for WordPress — create, schedule, download, restore, optimize and
 repair, from a clean WordPress admin screen.
 
-Simple DB Backup is a hardened, trimmed fork of the classic
-[WP-DBManager](https://github.com/lesterchan/wp-dbmanager). It keeps the genuinely useful,
-non-destructive tooling and removes everything that made the original risky.
+Simple DB Backup is a modern, security-hardened database tool inspired by the classic
+[WP-DBManager](https://github.com/lesterchan/wp-dbmanager). It is an independent reimplementation
+that keeps the genuinely useful, non-destructive tooling and leaves out everything that made the
+original risky.
 
 ## Features
 
@@ -26,7 +27,7 @@ non-destructive tooling and removes everything that made the original risky.
   hardened, with a warning if it sits inside the web root).
 - Multisite: restricted to network administrators.
 
-**Removed from the original:** empty/drop tables, arbitrary SQL execution, emailing backups, and
+**Deliberately omitted (features WP-DBManager had):** empty/drop tables, arbitrary SQL execution, emailing backups, and
 global admin notices.
 
 ## Requirements
@@ -45,8 +46,8 @@ Updates are delivered automatically from GitHub Releases.
 
 ## Credits
 
-Based on [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) by Lester 'GaMerZ' Chan,
-licensed GPL-2.0-or-later.
+Inspired by [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) by Lester 'GaMerZ' Chan.
+Simple DB Backup is an independent reimplementation and shares no code with WP-DBManager.
 
 ## License
 

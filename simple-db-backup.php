@@ -12,8 +12,9 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       simple-db-backup
  *
- * Based on WP-DBManager by Lester 'GaMerZ' Chan
- * (https://github.com/lesterchan/wp-dbmanager), licensed GPL-2.0-or-later.
+ * Inspired by WP-DBManager by Lester 'GaMerZ' Chan
+ * (https://github.com/lesterchan/wp-dbmanager). Independent reimplementation;
+ * shares no code with WP-DBManager.
  *
  * @package SimpleDBBackup
  */

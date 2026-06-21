@@ -13,8 +13,9 @@ Safe, modern database backups for WordPress — create, schedule, download, rest
 
 == Description ==
 
-Simple DB Backup is a hardened, trimmed fork of the classic WP-DBManager. It keeps the genuinely
-useful, non-destructive tooling and drops everything that made the original risky.
+Simple DB Backup is a modern, security-hardened database tool inspired by the classic WP-DBManager.
+It is an independent reimplementation that keeps the genuinely useful, non-destructive tooling and
+leaves out everything that made the original risky.
 
 **What it does:**
 
@@ -35,7 +36,7 @@ useful, non-destructive tooling and drops everything that made the original risk
   `.htaccess`, `web.config` and an index file, with restrictive file permissions.
 * On multisite, only network administrators can use the plugin.
 
-**Deliberately removed from the original:** emptying/dropping tables, running arbitrary SQL,
+**Deliberately omitted (features WP-DBManager had):** emptying/dropping tables, running arbitrary SQL,
 emailing backups, and global admin notices.
 
 == Installation ==
@@ -70,8 +71,8 @@ operations plus backup/restore.
 
 = 1.0.0 =
 * Initial release.
-* Hardened, trimmed fork of WP-DBManager: backup, scheduled backup/optimize/repair, restore,
-  download/delete, and a read-only database info screen.
+* Independent, security-hardened reimplementation inspired by WP-DBManager: backup, scheduled
+  backup/optimize/repair, restore, download/delete, and a read-only database info screen.
 
 == Upgrade Notice ==
 
@@ -80,6 +81,7 @@ First release.
 
 == Credits ==
 
-Based on [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) by Lester 'GaMerZ' Chan,
-licensed GPL-2.0-or-later. This fork restructures the plugin, removes its destructive features,
-and hardens it against the original's known vulnerabilities.
+Inspired by [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) by Lester 'GaMerZ' Chan.
+Simple DB Backup is an independent reimplementation — it shares no code with WP-DBManager — that
+keeps the useful, non-destructive features, leaves out the risky ones, and is hardened against the
+kinds of vulnerabilities that affected the original.
