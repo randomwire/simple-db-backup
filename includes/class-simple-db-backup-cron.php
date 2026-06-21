@@ -15,9 +15,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Simple_DB_Backup_Cron {
 
-	const HOOK_BACKUP   = 'simple_db_backup_cron_backup';
-	const HOOK_OPTIMIZE = 'simple_db_backup_cron_optimize';
-	const HOOK_REPAIR   = 'simple_db_backup_cron_repair';
+	const HOOK_BACKUP = 'simple_db_backup_cron_backup';
+
+	/**
+	 * Hooks scheduled by earlier versions that no longer exist (optimize and
+	 * repair are now part of the backup run). Cleared so no orphan events remain.
+	 *
+	 * @var string[]
+	 */
+	private static $legacy_hooks = array(
+		'simple_db_backup_cron_optimize',
+		'simple_db_backup_cron_repair',
+	);
 
 	/**
 	 * Map of option key => cron hook.
@@ -26,9 +35,7 @@ class Simple_DB_Backup_Cron {
 	 */
 	private static function task_map() {
 		return array(
-			'backup_frequency'   => self::HOOK_BACKUP,
-			'optimize_frequency' => self::HOOK_OPTIMIZE,
-			'repair_frequency'   => self::HOOK_REPAIR,
+			'backup_frequency' => self::HOOK_BACKUP,
 		);
 	}
 
@@ -57,8 +64,6 @@ class Simple_DB_Backup_Cron {
 	public function run() {
 		add_filter( 'cron_schedules', array( __CLASS__, 'add_schedules' ) );
 		add_action( self::HOOK_BACKUP, array( __CLASS__, 'do_backup' ) );
-		add_action( self::HOOK_OPTIMIZE, array( __CLASS__, 'do_optimize' ) );
-		add_action( self::HOOK_REPAIR, array( __CLASS__, 'do_repair' ) );
 	}
 
 	/**
@@ -81,6 +86,11 @@ class Simple_DB_Backup_Cron {
 	 * Re-sync all scheduled events with the current settings.
 	 */
 	public static function reschedule_all() {
+		// Drop any events scheduled by earlier versions.
+		foreach ( self::$legacy_hooks as $legacy ) {
+			wp_clear_scheduled_hook( $legacy );
+		}
+
 		foreach ( self::task_map() as $option_key => $hook ) {
 			$recurrence = self::recurrence( (string) Simple_DB_Backup_Settings::get( $option_key, 'never' ) );
 
@@ -102,6 +112,9 @@ class Simple_DB_Backup_Cron {
 		foreach ( self::task_map() as $hook ) {
 			wp_clear_scheduled_hook( $hook );
 		}
+		foreach ( self::$legacy_hooks as $legacy ) {
+			wp_clear_scheduled_hook( $legacy );
+		}
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -109,23 +122,9 @@ class Simple_DB_Backup_Cron {
 	 * ------------------------------------------------------------------ */
 
 	/**
-	 * Scheduled backup.
+	 * Scheduled backup. Repair and optimize run inside create().
 	 */
 	public static function do_backup() {
 		Simple_DB_Backup_Backup::create();
-	}
-
-	/**
-	 * Scheduled optimize across all tables.
-	 */
-	public static function do_optimize() {
-		Simple_DB_Backup_Maintenance::optimize( Simple_DB_Backup_Maintenance::get_tables() );
-	}
-
-	/**
-	 * Scheduled repair across all tables.
-	 */
-	public static function do_repair() {
-		Simple_DB_Backup_Maintenance::repair( Simple_DB_Backup_Maintenance::get_tables() );
 	}
 }

@@ -19,9 +19,9 @@ useful, non-destructive tooling and drops everything that made the original risk
 **What it does:**
 
 * Create database backups with `mysqldump` (optionally gzip-compressed)
-* Schedule automatic backups, optimize and repair via WP-Cron
+* Every backup also repairs and optimizes all tables (non-destructive)
+* Schedule automatic backups via WP-Cron
 * Download, restore and delete backups from the admin
-* Optimize and repair tables (non-destructive)
 * View read-only database statistics
 
 **Security by design:**
@@ -70,8 +70,8 @@ operations plus backup/restore.
 
 = 1.0.0 =
 * Initial release.
-* Hardened, trimmed fork of WP-DBManager: backup, scheduled backup, restore, download/delete,
-  optimize and repair, and a read-only database info screen.
+* Hardened, trimmed fork of WP-DBManager: backup (with automatic repair + optimize), scheduled
+  backup, restore, download/delete, and a read-only database info screen.
 
 == Upgrade Notice ==
 

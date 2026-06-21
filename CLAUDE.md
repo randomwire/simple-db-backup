@@ -17,10 +17,9 @@ GitHub-only plugin: it uses the workspace's standard GitHub-Releases auto-update
 Requires a real WordPress environment (PHP 8.1+/WP 6.5+) with `mysqldump`/`mysql` available:
 
 1. Activate; confirm a protected backup dir is created under `wp-content/uploads/`.
-2. **DB Backup → Settings**: verify/auto-detect binary paths; set schedules and retention.
-3. **Backups**: create a backup; download it; restore it; delete it.
-4. **Maintenance**: optimize/repair selected tables.
-5. Confirm no global admin notices appear; feedback shows only on the plugin's screens.
+2. **DB Backup → Settings**: verify/auto-detect binary paths; set the backup schedule and retention.
+3. **Backups**: create a backup (this also repairs + optimizes every table); download it; restore it; delete it.
+4. Confirm no global admin notices appear; feedback shows only on the plugin's screens.
 
 ## Architecture
 
@@ -34,11 +33,14 @@ markup in `admin/views/`.
 - `Simple_DB_Backup_Filesystem` — backup dir creation/hardening and `resolve_backup_path()`, which
   confines every filename to the managed dir.
 - `Simple_DB_Backup_Backup` — `mysqldump` engine; credentials via temp 0600 `--defaults-extra-file`;
-  shell-less `proc_open` array form; gzip streaming; retention pruning; binary validation.
+  shell-less `proc_open` array form; gzip streaming; retention pruning; binary validation. `create()`
+  repairs + optimizes every table (best-effort) before dumping.
 - `Simple_DB_Backup_Restore` — imports a managed backup via `mysql` (gunzip on the fly).
 - `Simple_DB_Backup_Manage` — download (streamed) and delete.
-- `Simple_DB_Backup_Maintenance` — OPTIMIZE/REPAIR over tables validated against the live list.
-- `Simple_DB_Backup_Cron` — schedules + handlers; adds a monthly recurrence.
+- `Simple_DB_Backup_Maintenance` — OPTIMIZE/REPAIR over tables validated against the live list;
+  invoked from `Simple_DB_Backup_Backup::create()` (no standalone admin page).
+- `Simple_DB_Backup_Cron` — backup schedule + handler; adds a monthly recurrence; clears legacy
+  optimize/repair events.
 
 ## Key implementation details
 

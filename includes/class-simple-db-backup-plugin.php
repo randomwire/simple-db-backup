@@ -16,9 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Simple_DB_Backup_Plugin {
 
-	const MENU_SLUG        = 'simple-db-backup';
-	const MAINTENANCE_SLUG = 'simple-db-backup-maintenance';
-	const INFO_SLUG        = 'simple-db-backup-info';
+	const MENU_SLUG = 'simple-db-backup';
+	const INFO_SLUG = 'simple-db-backup-info';
 
 	/**
 	 * Settings instance.
@@ -54,7 +53,6 @@ class Simple_DB_Backup_Plugin {
 		add_action( 'admin_post_simple_db_backup_restore', array( $this, 'handle_restore' ) );
 		add_action( 'admin_post_simple_db_backup_delete', array( $this, 'handle_delete' ) );
 		add_action( 'admin_post_simple_db_backup_download', array( $this, 'handle_download' ) );
-		add_action( 'admin_post_simple_db_backup_maintenance', array( $this, 'handle_maintenance' ) );
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -83,15 +81,6 @@ class Simple_DB_Backup_Plugin {
 			$cap,
 			self::MENU_SLUG,
 			array( $this, 'render_backups_page' )
-		);
-
-		add_submenu_page(
-			self::MENU_SLUG,
-			__( 'Maintenance', 'simple-db-backup' ),
-			__( 'Maintenance', 'simple-db-backup' ),
-			$cap,
-			self::MAINTENANCE_SLUG,
-			array( $this, 'render_maintenance_page' )
 		);
 
 		add_submenu_page(
@@ -126,18 +115,6 @@ class Simple_DB_Backup_Plugin {
 			&& false !== Simple_DB_Backup_Backup::validate_binary( Simple_DB_Backup_Settings::get( 'mysqldump_path', '' ) );
 
 		$this->render_view( 'backups', compact( 'backups', 'can_backup' ) );
-	}
-
-	/**
-	 * Render the Maintenance page.
-	 */
-	public function render_maintenance_page() {
-		if ( ! current_user_can( self::capability() ) ) {
-			return;
-		}
-
-		$tables = Simple_DB_Backup_Maintenance::get_tables();
-		$this->render_view( 'maintenance', compact( 'tables' ) );
 	}
 
 	/**
@@ -233,28 +210,6 @@ class Simple_DB_Backup_Plugin {
 
 		$name = isset( $_GET['backup'] ) ? sanitize_text_field( wp_unslash( $_GET['backup'] ) ) : '';
 		Simple_DB_Backup_Manage::download( $name ); // Streams and exits.
-	}
-
-	/**
-	 * Run optimize or repair over the selected tables.
-	 */
-	public function handle_maintenance() {
-		$this->require_cap();
-		check_admin_referer( 'simple_db_backup_maintenance' );
-
-		$operation = isset( $_POST['operation'] ) ? sanitize_key( wp_unslash( $_POST['operation'] ) ) : '';
-		$tables    = isset( $_POST['tables'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_POST['tables'] ) ) : array();
-
-		if ( 'repair' === $operation ) {
-			$result = Simple_DB_Backup_Maintenance::repair( $tables );
-		} elseif ( 'optimize' === $operation ) {
-			$result = Simple_DB_Backup_Maintenance::optimize( $tables );
-		} else {
-			$result = array( 'success' => false, 'message' => __( 'Unknown operation.', 'simple-db-backup' ) );
-		}
-
-		$this->set_notice( $result['success'] ? 'success' : 'error', $result['message'] );
-		$this->redirect( self::MAINTENANCE_SLUG );
 	}
 
 	/* ------------------------------------------------------------------ *
