@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 - 2026-06-21
+
+- Connections: parse IPv6 `DB_HOST` values correctly (`::1`, `[::1]:3306`, bracketed with port).
+- Maintenance: `get_tables()` returns base tables only (views excluded); optimize/repair inspect
+  the result and report real per-table errors instead of always claiming success.
+- Internal: backup-directory migration runs via an `update_option` hook (once per real change)
+  rather than as a side effect in `sanitize()`.
+- Docs: corrected attribution — Simple DB Backup is an independent reimplementation inspired by
+  WP-DBManager and shares no code with it.
+
 ## 1.0.0 - 2026-06-21
 
 - Initial release.

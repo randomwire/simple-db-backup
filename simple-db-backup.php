@@ -3,7 +3,7 @@
  * Plugin Name:       Simple DB Backup
  * Plugin URI:        https://github.com/randomwire/simple-db-backup
  * Description:       Safe, modern database backups for WordPress — create, schedule, download, restore, optimize and repair.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            David Gilbert
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/includes/updater.php';
 randomwire_init_github_updater( __FILE__ );
 
-define( 'SIMPLE_DB_BACKUP_VERSION', '1.0.0' );
+define( 'SIMPLE_DB_BACKUP_VERSION', '1.0.1' );
 define( 'SIMPLE_DB_BACKUP_FILE', __FILE__ );
 define( 'SIMPLE_DB_BACKUP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SIMPLE_DB_BACKUP_URL', plugin_dir_url( __FILE__ ) );

@@ -5,7 +5,7 @@ Tags: database, backup, restore, optimize, repair
 Requires at least: 6.5
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,12 +69,23 @@ operations plus backup/restore.
 
 == Changelog ==
 
+= 1.0.1 =
+* Connections: support IPv6 database hosts (e.g. ::1, [::1]:3306).
+* Maintenance: optimize/repair only base tables (skip views) and report real errors instead of
+  always reporting success.
+* Internal: backup-directory migration now runs once per change via an update_option hook.
+* Docs: clarified that this is an independent reimplementation inspired by WP-DBManager (shares
+  no code with it).
+
 = 1.0.0 =
 * Initial release.
 * Independent, security-hardened reimplementation inspired by WP-DBManager: backup, scheduled
   backup/optimize/repair, restore, download/delete, and a read-only database info screen.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Adds IPv6 database host support and more reliable optimize/repair. Recommended for all users.
 
 = 1.0.0 =
 First release.
