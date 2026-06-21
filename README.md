@@ -10,8 +10,7 @@ non-destructive tooling and removes everything that made the original risky.
 ## Features
 
 - Create database backups with `mysqldump`, optionally gzip-compressed
-- Every backup also repairs and optimizes all tables (non-destructive)
-- Scheduled automatic backups via WP-Cron
+- Independent WP-Cron schedules for automatic backup, optimize and repair
 - Download, restore and delete backups from the admin
 - Read-only database statistics
 

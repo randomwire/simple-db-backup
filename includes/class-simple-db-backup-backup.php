@@ -121,15 +121,6 @@ class Simple_DB_Backup_Backup {
 			return self::error( __( 'The backup directory could not be created or is not writable.', 'simple-db-backup' ) );
 		}
 
-		// Repair and optimize every table as part of the backup, so the dump
-		// captures clean, defragmented tables. Best-effort: a maintenance
-		// hiccup must not block the backup itself.
-		$tables = Simple_DB_Backup_Maintenance::get_tables();
-		if ( ! empty( $tables ) ) {
-			Simple_DB_Backup_Maintenance::repair( $tables );
-			Simple_DB_Backup_Maintenance::optimize( $tables );
-		}
-
 		$gzip = (bool) Simple_DB_Backup_Settings::get( 'gzip', false ) && self::gzip_available();
 		$dir  = Simple_DB_Backup_Filesystem::get_backup_dir();
 		$name = sprintf(

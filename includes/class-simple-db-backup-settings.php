@@ -28,11 +28,13 @@ class Simple_DB_Backup_Settings {
 		return array(
 			'mysqldump_path'     => '',
 			'mysql_path'         => '',
-			'max_backups'      => 10,
-			'gzip'             => true,
-			'backup_frequency' => 'never',
+			'max_backups'        => 10,
+			'gzip'               => true,
+			'backup_frequency'   => 'never',
+			'optimize_frequency' => 'never',
+			'repair_frequency'   => 'never',
 			// Unguessable directory segment under uploads; set once on install.
-			'backup_dirname'   => '',
+			'backup_dirname'     => '',
 		);
 	}
 
@@ -174,19 +176,25 @@ class Simple_DB_Backup_Settings {
 
 		add_settings_section(
 			'simple_db_backup_schedules',
-			__( 'Automatic schedule', 'simple-db-backup' ),
+			__( 'Automatic schedules', 'simple-db-backup' ),
 			array( $this, 'render_schedules_section' ),
 			self::PAGE_SLUG
 		);
 
-		add_settings_field(
-			'backup_frequency',
-			__( 'Automatic backup', 'simple-db-backup' ),
-			array( $this, 'render_frequency_field' ),
-			self::PAGE_SLUG,
-			'simple_db_backup_schedules',
-			array( 'key' => 'backup_frequency' )
-		);
+		foreach ( array(
+			'backup_frequency'   => __( 'Automatic backup', 'simple-db-backup' ),
+			'optimize_frequency' => __( 'Automatic optimize', 'simple-db-backup' ),
+			'repair_frequency'   => __( 'Automatic repair', 'simple-db-backup' ),
+		) as $key => $label ) {
+			add_settings_field(
+				$key,
+				$label,
+				array( $this, 'render_frequency_field' ),
+				self::PAGE_SLUG,
+				'simple_db_backup_schedules',
+				array( 'key' => $key )
+			);
+		}
 	}
 
 	/**
@@ -218,8 +226,10 @@ class Simple_DB_Backup_Settings {
 		}
 
 		$frequencies = self::frequencies();
-		if ( isset( $input['backup_frequency'] ) && isset( $frequencies[ $input['backup_frequency'] ] ) ) {
-			$clean['backup_frequency'] = $input['backup_frequency'];
+		foreach ( array( 'backup_frequency', 'optimize_frequency', 'repair_frequency' ) as $key ) {
+			if ( isset( $input[ $key ] ) && isset( $frequencies[ $input[ $key ] ] ) ) {
+				$clean[ $key ] = $input[ $key ];
+			}
 		}
 
 		// Never allow the directory name to be altered through the form.
@@ -252,7 +262,7 @@ class Simple_DB_Backup_Settings {
 	}
 
 	public function render_schedules_section() {
-		echo '<p>' . esc_html__( 'Run backups automatically via WP-Cron. Each backup also repairs and optimizes every table. Set to “Never” to disable.', 'simple-db-backup' ) . '</p>';
+		echo '<p>' . esc_html__( 'Run these tasks automatically via WP-Cron. Optimize and repair run independently of backups, across all tables. Set to “Never” to disable.', 'simple-db-backup' ) . '</p>';
 	}
 
 	/**

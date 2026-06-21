@@ -5,8 +5,8 @@
 - Initial release.
 - Originates as a hardened, trimmed fork of WP-DBManager by Lester 'GaMerZ' Chan
   (GPL-2.0-or-later).
-- Features: manual and scheduled backups (`mysqldump`, optional gzip) that also repair and optimize
-  every table, plus restore, download/delete, and a read-only database info screen.
+- Features: manual and scheduled backups (`mysqldump`, optional gzip), independent optimize and
+  repair schedules, restore, download/delete, and a read-only database info screen.
 - Security: credentials via temporary 0600 `--defaults-extra-file` (no password on argv); shell-less
   process launch; path-traversal-safe file handling; protected backup directory under uploads;
   network-admin-only on multisite.
