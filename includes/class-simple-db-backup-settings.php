@@ -116,6 +116,28 @@ class Simple_DB_Backup_Settings {
 	 */
 	public function run() {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'update_option_' . self::OPTION_NAME, array( $this, 'on_options_updated' ), 10, 2 );
+	}
+
+	/**
+	 * Move existing backups when the effective directory changes.
+	 *
+	 * Hooked to update_option so it runs exactly once per real change, rather
+	 * than as a side effect inside sanitize() (which WordPress may call twice).
+	 *
+	 * @param mixed $old_value Previous option value.
+	 * @param mixed $value     New option value.
+	 */
+	public function on_options_updated( $old_value, $value ) {
+		$old_value = is_array( $old_value ) ? $old_value : array();
+		$value     = is_array( $value ) ? $value : array();
+
+		$old_dir = Simple_DB_Backup_Filesystem::dir_for( $old_value );
+		$new_dir = Simple_DB_Backup_Filesystem::dir_for( $value );
+
+		if ( $old_dir !== $new_dir && Simple_DB_Backup_Filesystem::prepare_dir( $new_dir ) ) {
+			Simple_DB_Backup_Filesystem::move_backups( $old_dir, $new_dir );
+		}
 	}
 
 	/**
@@ -248,15 +270,9 @@ class Simple_DB_Backup_Settings {
 			$clean['backup_dirname'] = $defaults['backup_dirname'];
 		}
 
-		// Custom backup directory (optional). Validated and hardened here.
+		// Custom backup directory (optional). Validated and hardened here; the
+		// actual move of existing backups happens in on_options_updated().
 		$clean['backup_path'] = $this->sanitize_backup_path( $input, $current );
-
-		// Move existing backups if the effective directory changed.
-		$old_dir = Simple_DB_Backup_Filesystem::dir_for( $current );
-		$new_dir = Simple_DB_Backup_Filesystem::dir_for( $clean );
-		if ( $old_dir !== $new_dir && Simple_DB_Backup_Filesystem::prepare_dir( $new_dir ) ) {
-			Simple_DB_Backup_Filesystem::move_backups( $old_dir, $new_dir );
-		}
 
 		// Re-apply schedules to match the new frequencies.
 		add_action( 'shutdown', array( 'Simple_DB_Backup_Cron', 'reschedule_all' ) );

@@ -402,13 +402,26 @@ class Simple_DB_Backup_Backup {
 		$port   = '';
 		$socket = '';
 
-		if ( false !== strpos( $host, ':' ) ) {
-			list( $host, $suffix ) = explode( ':', $host, 2 );
-			if ( ctype_digit( $suffix ) ) {
-				$port = $suffix;
-			} else {
-				$socket = $suffix;
-			}
+		// Peel a socket path (":/...") off the right first, if present.
+		$socket_pos = strpos( $host, ':/' );
+		if ( false !== $socket_pos ) {
+			$socket = substr( $host, $socket_pos + 1 );
+			$host   = substr( $host, 0, $socket_pos );
+		}
+
+		// An IPv6 address contains two or more colons (e.g. ::1, [::1]:3306);
+		// IPv4/hostnames have at most one. Pick the matching pattern so we don't
+		// mistake an IPv6 address for a socket or chop it at the first colon.
+		if ( substr_count( $host, ':' ) > 1 ) {
+			$pattern = '#^(?:\[)?(?P<host>[0-9a-fA-F:]+)(?:\]:(?P<port>\d+))?#';
+		} else {
+			$pattern = '#^(?P<host>[^:/]*)(?::(?P<port>\d+))?#';
+		}
+
+		$matches = array();
+		if ( preg_match( $pattern, $host, $matches ) ) {
+			$host = isset( $matches['host'] ) ? $matches['host'] : '';
+			$port = isset( $matches['port'] ) ? $matches['port'] : '';
 		}
 
 		return array(
