@@ -80,6 +80,9 @@ class Simple_DB_Backup_Restore {
 	/**
 	 * Run a process, streaming a (optionally gzipped) file into its stdin.
 	 *
+	 * Delegates to the shared, deadlock-safe runner so that mysql's stdin is
+	 * fed while its stdout/stderr are drained concurrently.
+	 *
 	 * @param string[] $command Argv array (no shell involved).
 	 * @param string   $source  Source backup file path.
 	 * @param bool     $gzip    Whether the source is gzip-compressed.
@@ -91,49 +94,23 @@ class Simple_DB_Backup_Restore {
 			return self::error( __( 'Could not open the backup file for reading.', 'simple-db-backup' ) );
 		}
 
-		$descriptors = array(
-			0 => array( 'pipe', 'r' ),
-			1 => array( 'pipe', 'w' ),
-			2 => array( 'pipe', 'w' ),
-		);
-
-		$process = proc_open( $command, $descriptors, $pipes );
-		if ( ! is_resource( $process ) ) {
-			$gzip ? gzclose( $in ) : fclose( $in );
-			return self::error( __( 'Could not start the restore process.', 'simple-db-backup' ) );
-		}
-
-		while ( ! ( $gzip ? gzeof( $in ) : feof( $in ) ) ) {
+		$reader = static function () use ( $in, $gzip ) {
+			if ( $gzip ? gzeof( $in ) : feof( $in ) ) {
+				return '';
+			}
 			$chunk = $gzip ? gzread( $in, 65536 ) : fread( $in, 65536 );
-			if ( false === $chunk || '' === $chunk ) {
-				break;
-			}
-			fwrite( $pipes[0], $chunk );
+			return false === $chunk ? '' : $chunk;
+		};
+
+		$result = Simple_DB_Backup_Backup::run_process( $command, $reader, null );
+
+		if ( $gzip ) {
+			gzclose( $in );
+		} else {
+			fclose( $in );
 		}
 
-		$gzip ? gzclose( $in ) : fclose( $in );
-		fclose( $pipes[0] );
-
-		stream_get_contents( $pipes[1] );
-		$stderr = stream_get_contents( $pipes[2] );
-		fclose( $pipes[1] );
-		fclose( $pipes[2] );
-
-		$exit_code = proc_close( $process );
-
-		if ( 0 !== $exit_code ) {
-			$detail = trim( (string) $stderr );
-			if ( '' === $detail ) {
-				/* translators: %d: process exit code. */
-				$detail = sprintf( __( 'process exited with code %d', 'simple-db-backup' ), $exit_code );
-			}
-			if ( defined( 'DB_PASSWORD' ) && '' !== DB_PASSWORD ) {
-				$detail = str_replace( DB_PASSWORD, '******', $detail );
-			}
-			return self::error( $detail );
-		}
-
-		return array( 'success' => true, 'message' => '' );
+		return $result;
 	}
 
 	/**

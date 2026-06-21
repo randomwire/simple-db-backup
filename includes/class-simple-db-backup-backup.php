@@ -137,7 +137,29 @@ class Simple_DB_Backup_Backup {
 				DB_NAME,
 			);
 
-			$result = self::run_to_file( $command, $target, $gzip );
+			$out = $gzip ? gzopen( $target, 'wb6' ) : fopen( $target, 'wb' );
+			if ( false === $out ) {
+				$result = array(
+					'success' => false,
+					'message' => __( 'Could not open the backup file for writing.', 'simple-db-backup' ),
+				);
+			} else {
+				$writer = static function ( $chunk ) use ( $out, $gzip ) {
+					if ( $gzip ) {
+						gzwrite( $out, $chunk );
+					} else {
+						fwrite( $out, $chunk );
+					}
+				};
+
+				$result = self::run_process( $command, null, $writer );
+
+				if ( $gzip ) {
+					gzclose( $out );
+				} else {
+					fclose( $out );
+				}
+			}
 		} finally {
 			self::remove_file( $cnf );
 		}
@@ -201,14 +223,16 @@ class Simple_DB_Backup_Backup {
 	}
 
 	/**
-	 * Run a process, streaming stdout into a (optionally gzipped) file.
+	 * Run a process without a shell, concurrently feeding stdin and draining
+	 * stdout/stderr so neither side can deadlock on a full pipe buffer.
 	 *
-	 * @param string[] $command Argv array (no shell involved).
-	 * @param string   $target  Destination file path.
-	 * @param bool     $gzip    Whether to gzip-compress the output stream.
+	 * @param string[]      $command   Argv array (no shell involved).
+	 * @param callable|null $reader    Returns the next stdin chunk, or '' at EOF.
+	 *                                 Null closes stdin immediately (no input).
+	 * @param callable|null $writer    Receives each stdout chunk. Null discards it.
 	 * @return array{success:bool,message:string}
 	 */
-	public static function run_to_file( array $command, $target, $gzip ) {
+	public static function run_process( array $command, $reader = null, $writer = null ) {
 		$descriptors = array(
 			0 => array( 'pipe', 'r' ),
 			1 => array( 'pipe', 'w' ),
@@ -219,47 +243,98 @@ class Simple_DB_Backup_Backup {
 		if ( ! is_resource( $process ) ) {
 			return array(
 				'success' => false,
-				'message' => __( 'Could not start the backup process.', 'simple-db-backup' ),
+				'message' => __( 'Could not start the process.', 'simple-db-backup' ),
 			);
 		}
 
-		fclose( $pipes[0] );
-
-		$out = $gzip ? gzopen( $target, 'wb6' ) : fopen( $target, 'wb' );
-		if ( false === $out ) {
-			fclose( $pipes[1] );
-			fclose( $pipes[2] );
-			proc_close( $process );
-			return array(
-				'success' => false,
-				'message' => __( 'Could not open the backup file for writing.', 'simple-db-backup' ),
-			);
+		foreach ( $pipes as $pipe ) {
+			stream_set_blocking( $pipe, false );
 		}
 
-		while ( ! feof( $pipes[1] ) ) {
-			$chunk = fread( $pipes[1], 65536 );
-			if ( false === $chunk || '' === $chunk ) {
-				if ( feof( $pipes[1] ) ) {
-					break;
+		$feed    = is_callable( $reader );
+		$pending = '';
+		if ( ! $feed ) {
+			fclose( $pipes[0] );
+		}
+
+		$stderr = '';
+
+		while ( true ) {
+			$read = array();
+			if ( is_resource( $pipes[1] ) ) {
+				$read[] = $pipes[1];
+			}
+			if ( is_resource( $pipes[2] ) ) {
+				$read[] = $pipes[2];
+			}
+
+			$write = array();
+			if ( is_resource( $pipes[0] ) && ( $feed || '' !== $pending ) ) {
+				$write[] = $pipes[0];
+			}
+
+			if ( empty( $read ) && empty( $write ) ) {
+				break;
+			}
+
+			$r = $read;
+			$w = $write;
+			$e = null;
+			if ( false === stream_select( $r, $w, $e, null ) ) {
+				break;
+			}
+
+			// Feed stdin.
+			if ( ! empty( $w ) ) {
+				if ( '' === $pending && $feed ) {
+					$chunk = call_user_func( $reader );
+					if ( false === $chunk || '' === $chunk ) {
+						$feed = false;
+					} else {
+						$pending = $chunk;
+					}
 				}
-				continue;
+				if ( '' !== $pending ) {
+					$written = fwrite( $pipes[0], $pending );
+					if ( false === $written ) {
+						$feed    = false;
+						$pending = '';
+					} else {
+						$pending = substr( $pending, $written );
+					}
+				}
+				if ( ! $feed && '' === $pending ) {
+					fclose( $pipes[0] );
+				}
 			}
-			if ( $gzip ) {
-				gzwrite( $out, $chunk );
-			} else {
-				fwrite( $out, $chunk );
+
+			// Drain stdout/stderr.
+			foreach ( $r as $stream ) {
+				if ( $stream === $pipes[1] ) {
+					$chunk = fread( $pipes[1], 65536 );
+					if ( '' !== $chunk && false !== $chunk && null !== $writer ) {
+						call_user_func( $writer, $chunk );
+					}
+					if ( feof( $pipes[1] ) ) {
+						fclose( $pipes[1] );
+					}
+				} elseif ( $stream === $pipes[2] ) {
+					$chunk = fread( $pipes[2], 65536 );
+					if ( '' !== $chunk && false !== $chunk ) {
+						$stderr .= $chunk;
+					}
+					if ( feof( $pipes[2] ) ) {
+						fclose( $pipes[2] );
+					}
+				}
 			}
 		}
 
-		if ( $gzip ) {
-			gzclose( $out );
-		} else {
-			fclose( $out );
+		foreach ( $pipes as $pipe ) {
+			if ( is_resource( $pipe ) ) {
+				fclose( $pipe );
+			}
 		}
-
-		$stderr = stream_get_contents( $pipes[2] );
-		fclose( $pipes[1] );
-		fclose( $pipes[2] );
 
 		$exit_code = proc_close( $process );
 
