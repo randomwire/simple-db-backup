@@ -29,7 +29,7 @@ class Simple_DB_Backup_Settings {
 			'mysqldump_path'     => '',
 			'mysql_path'         => '',
 			'max_backups'      => 10,
-			'gzip'             => false,
+			'gzip'             => true,
 			'backup_frequency' => 'never',
 			// Unguessable directory segment under uploads; set once on install.
 			'backup_dirname'   => '',
@@ -89,6 +89,11 @@ class Simple_DB_Backup_Settings {
 
 		if ( empty( $options['backup_dirname'] ) ) {
 			$options['backup_dirname'] = 'sdb-backups-' . wp_generate_password( 12, false, false );
+		}
+
+		// Default gzip on, but only where the server actually supports it.
+		if ( ! Simple_DB_Backup_Backup::gzip_available() ) {
+			$options['gzip'] = false;
 		}
 
 		// Best-effort auto-detection of the MySQL client binaries.
@@ -241,7 +246,7 @@ class Simple_DB_Backup_Settings {
 		$dir = Simple_DB_Backup_Filesystem::get_backup_dir();
 		echo '<p>' . sprintf(
 			/* translators: %s: absolute backup directory path. */
-			esc_html__( 'Backups are stored in %s, protected from direct web access.', 'simple-db-backup' ),
+			esc_html__( 'Backups are stored in %s.', 'simple-db-backup' ),
 			'<code>' . esc_html( $dir ) . '</code>'
 		) . '</p>';
 	}
