@@ -83,13 +83,20 @@ class Simple_DB_Backup_Cron {
 	public static function reschedule_all() {
 		foreach ( self::task_map() as $option_key => $hook ) {
 			$recurrence = self::recurrence( (string) Simple_DB_Backup_Settings::get( $option_key, 'never' ) );
+			$current    = wp_get_schedule( $hook ); // false when not scheduled.
 
-			$existing = wp_next_scheduled( $hook );
-			if ( $existing ) {
-				wp_unschedule_event( $existing, $hook );
+			// Disabled: clear any existing event and move on.
+			if ( false === $recurrence ) {
+				if ( false !== $current ) {
+					wp_clear_scheduled_hook( $hook );
+				}
+				continue;
 			}
 
-			if ( false !== $recurrence ) {
+			// (Re)schedule only when missing or the frequency changed, so simply
+			// re-saving settings does not keep pushing the next run an hour out.
+			if ( $current !== $recurrence ) {
+				wp_clear_scheduled_hook( $hook );
 				wp_schedule_event( time() + HOUR_IN_SECONDS, $recurrence, $hook );
 			}
 		}

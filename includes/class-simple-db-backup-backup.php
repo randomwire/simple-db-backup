@@ -137,6 +137,8 @@ class Simple_DB_Backup_Backup {
 			return self::error( __( 'Could not create the temporary credentials file.', 'simple-db-backup' ) );
 		}
 
+		$write_error = false;
+
 		try {
 			$command = array(
 				$mysqldump,
@@ -158,11 +160,11 @@ class Simple_DB_Backup_Backup {
 					'message' => __( 'Could not open the backup file for writing.', 'simple-db-backup' ),
 				);
 			} else {
-				$writer = static function ( $chunk ) use ( $out, $gzip ) {
-					if ( $gzip ) {
-						gzwrite( $out, $chunk );
-					} else {
-						fwrite( $out, $chunk );
+				// Track short/failed writes so a full disk can't pass as success.
+				$writer = static function ( $chunk ) use ( $out, $gzip, &$write_error ) {
+					$written = $gzip ? gzwrite( $out, $chunk ) : fwrite( $out, $chunk );
+					if ( false === $written || $written < strlen( $chunk ) ) {
+						$write_error = true;
 					}
 				};
 
@@ -176,6 +178,13 @@ class Simple_DB_Backup_Backup {
 			}
 		} finally {
 			self::remove_file( $cnf );
+		}
+
+		if ( $result['success'] && $write_error ) {
+			$result = array(
+				'success' => false,
+				'message' => __( 'Writing the backup file failed (the disk may be full).', 'simple-db-backup' ),
+			);
 		}
 
 		if ( ! $result['success'] ) {

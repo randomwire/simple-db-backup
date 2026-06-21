@@ -27,6 +27,15 @@ class Simple_DB_Backup_Manage {
 			wp_die( esc_html__( 'That backup file could not be found.', 'simple-db-backup' ), '', array( 'response' => 404 ) );
 		}
 
+		// Discard any buffered output and disable compression so the byte count
+		// matches Content-Length and the stream isn't corrupted.
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+		if ( function_exists( 'ini_set' ) ) {
+			@ini_set( 'zlib.output_compression', 'Off' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.IniSet.Risky
+		}
+
 		nocache_headers();
 		header( 'Content-Type: application/octet-stream' );
 		header( 'Content-Disposition: attachment; filename="' . basename( $path ) . '"' );
