@@ -72,19 +72,33 @@ class Simple_DB_Backup_Backup {
 	}
 
 	/**
-	 * Best-effort discovery of a binary by name in common locations.
+	 * Best-effort discovery of a binary by name in common locations and on
+	 * the system PATH. No shell is used.
 	 *
 	 * @param string $binary Either 'mysqldump' or 'mysql'.
 	 * @return string Detected absolute path or empty string.
 	 */
 	public static function detect_binary( $binary ) {
 		$binary = basename( $binary );
-		foreach ( self::$search_paths as $dir ) {
+
+		// Curated common locations first, then each directory on the PATH.
+		$dirs = self::$search_paths;
+		$path = getenv( 'PATH' );
+		if ( is_string( $path ) && '' !== $path ) {
+			$dirs = array_merge( $dirs, explode( PATH_SEPARATOR, $path ) );
+		}
+
+		foreach ( array_unique( $dirs ) as $dir ) {
+			$dir = rtrim( (string) $dir, '/\\' );
+			if ( '' === $dir ) {
+				continue;
+			}
 			$candidate = $dir . '/' . $binary;
 			if ( is_file( $candidate ) && is_executable( $candidate ) ) {
 				return $candidate;
 			}
 		}
+
 		return '';
 	}
 
