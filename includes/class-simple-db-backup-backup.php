@@ -209,6 +209,17 @@ class Simple_DB_Backup_Backup {
 	public static function write_defaults_file( $dir ) {
 		$conn = self::parse_db_host( DB_HOST );
 
+		// WordPress/MySQL treat the literal host "localhost" as a socket
+		// connection. The mysql client would otherwise default to
+		// /tmp/mysql.sock, which is usually wrong (Local, MAMP, etc.), so ask
+		// the live server for the socket it is actually listening on.
+		if ( '' === $conn['socket'] && '' === $conn['port'] && self::is_localhost( $conn['host'] ) ) {
+			$socket = self::server_socket();
+			if ( '' !== $socket ) {
+				$conn['socket'] = $socket;
+			}
+		}
+
 		$lines   = array( '[client]' );
 		$lines[] = 'user="' . self::escape_cnf( DB_USER ) . '"';
 		$lines[] = 'password="' . self::escape_cnf( DB_PASSWORD ) . '"';
@@ -396,6 +407,30 @@ class Simple_DB_Backup_Backup {
 			'port'   => $port,
 			'socket' => $socket,
 		);
+	}
+
+	/**
+	 * Whether a host string represents a local socket connection.
+	 *
+	 * @param string $host Host part of DB_HOST.
+	 * @return bool
+	 */
+	private static function is_localhost( $host ) {
+		return '' === $host || 0 === strcasecmp( $host, 'localhost' );
+	}
+
+	/**
+	 * Ask the connected MySQL server for the socket it is listening on.
+	 *
+	 * @return string Socket path, or '' if unavailable.
+	 */
+	private static function server_socket() {
+		global $wpdb;
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) ) {
+			return '';
+		}
+		$socket = $wpdb->get_var( 'SELECT @@socket' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return is_string( $socket ) ? $socket : '';
 	}
 
 	/**
