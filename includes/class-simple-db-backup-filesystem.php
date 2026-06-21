@@ -258,6 +258,33 @@ class Simple_DB_Backup_Filesystem {
 	}
 
 	/**
+	 * MD5 checksum of a backup file, cached so large files are not re-hashed on
+	 * every page load. The cache key includes size and mtime, so it invalidates
+	 * automatically if the file ever changes.
+	 *
+	 * @param string $path Absolute file path.
+	 * @return string 32-character hex digest, or '' if unavailable.
+	 */
+	public static function checksum( $path ) {
+		if ( '' === $path || ! is_file( $path ) ) {
+			return '';
+		}
+
+		$key    = 'sdb_md5_' . md5( $path . '|' . filesize( $path ) . '|' . filemtime( $path ) );
+		$cached = get_transient( $key );
+		if ( is_string( $cached ) ) {
+			return $cached;
+		}
+
+		$hash = md5_file( $path );
+		$hash = is_string( $hash ) ? $hash : '';
+
+		set_transient( $key, $hash, WEEK_IN_SECONDS );
+
+		return $hash;
+	}
+
+	/**
 	 * Delete backups beyond the retention limit (keeps the newest $max).
 	 *
 	 * @param int $max Number of backups to keep.
