@@ -39,10 +39,10 @@ $action_url = admin_url( 'admin-post.php' );
 		<table class="wp-list-table widefat striped">
 			<thead>
 				<tr>
-					<th scope="col"><?php esc_html_e( 'File', 'simple-db-backup' ); ?></th>
-					<th scope="col"><?php esc_html_e( 'Size', 'simple-db-backup' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Date', 'simple-db-backup' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'File', 'simple-db-backup' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'MD5 Checksum', 'simple-db-backup' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Size', 'simple-db-backup' ); ?></th>
 					<th scope="col"><?php esc_html_e( 'Actions', 'simple-db-backup' ); ?></th>
 				</tr>
 			</thead>
@@ -61,10 +61,10 @@ $action_url = admin_url( 'admin-post.php' );
 					);
 					?>
 					<tr>
-						<td><code><?php echo esc_html( $backup['name'] ); ?></code></td>
-						<td><?php echo esc_html( size_format( $backup['size'] ) ); ?></td>
 						<td><?php echo esc_html( wp_date( 'Y-m-d H:i', $backup['mtime'] ) ); ?></td>
+						<td><code><?php echo esc_html( $backup['name'] ); ?></code></td>
 						<td><code><?php echo esc_html( Simple_DB_Backup_Filesystem::checksum( $backup['path'] ) ); ?></code></td>
+						<td><?php echo esc_html( size_format( $backup['size'] ) ); ?></td>
 						<td>
 							<a class="button button-small" href="<?php echo esc_url( $download_url ); ?>">
 								<?php esc_html_e( 'Download', 'simple-db-backup' ); ?>
