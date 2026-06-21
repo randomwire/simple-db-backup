@@ -182,9 +182,9 @@ class Simple_DB_Backup_Settings {
 		);
 
 		foreach ( array(
-			'backup_frequency'   => __( 'Automatic backup', 'simple-db-backup' ),
-			'optimize_frequency' => __( 'Automatic optimize', 'simple-db-backup' ),
-			'repair_frequency'   => __( 'Automatic repair', 'simple-db-backup' ),
+			'backup_frequency'   => __( 'Backup', 'simple-db-backup' ),
+			'optimize_frequency' => __( 'Optimise', 'simple-db-backup' ),
+			'repair_frequency'   => __( 'Repair', 'simple-db-backup' ),
 		) as $key => $label ) {
 			add_settings_field(
 				$key,
