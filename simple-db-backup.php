@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Simple DB Backup
  * Plugin URI:        https://github.com/randomwire/simple-db-backup
- * Description:       Safe, modern database backups for WordPress — create, schedule, download, restore, optimize and repair. A hardened, trimmed fork of WP-DBManager with the dangerous parts removed.
+ * Description:       Safe, modern database backups for WordPress — create, schedule, download, restore, optimize and repair.
  * Version:           1.0.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
