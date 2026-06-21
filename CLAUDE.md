@@ -31,8 +31,9 @@ markup in `admin/views/`.
   `capability()` gate (`manage_network_options` on multisite, else `manage_options`).
 - `Simple_DB_Backup_Settings` — single serialized option `simple_db_backup_options`, Settings API
   page, defaults, and the random backup directory name.
-- `Simple_DB_Backup_Filesystem` — backup dir creation/hardening and `resolve_backup_path()`, which
-  confines every filename to the managed dir.
+- `Simple_DB_Backup_Filesystem` — backup dir resolution (`dir_for()`: custom `backup_path` wins,
+  else default uploads folder), creation/hardening, `resolve_backup_path()` (confines every
+  filename to the managed dir), and `move_backups()` for path changes.
 - `Simple_DB_Backup_Backup` — `mysqldump` engine; credentials via temp 0600 `--defaults-extra-file`;
   shell-less `proc_open` array form; gzip streaming; retention pruning; binary validation.
 - `Simple_DB_Backup_Restore` — imports a managed backup via `mysql` (gunzip on the fly).

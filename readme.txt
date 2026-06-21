@@ -57,8 +57,9 @@ is unavailable.
 
 = Where are backups stored? =
 
-In an unguessable folder under `wp-content/uploads/`, protected from direct web access. The exact
-path is shown on the Settings screen.
+By default, in an unguessable folder under `wp-content/uploads/`, protected from direct web access.
+You can set a custom absolute path on the Settings screen — ideally outside the web root. Changing
+the path moves your existing backups to the new location.
 
 = Can it drop tables or run custom SQL? =
 

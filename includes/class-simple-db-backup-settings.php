@@ -33,6 +33,8 @@ class Simple_DB_Backup_Settings {
 			'backup_frequency'   => 'never',
 			'optimize_frequency' => 'never',
 			'repair_frequency'   => 'never',
+			// Optional custom absolute path; empty uses the default uploads dir.
+			'backup_path'        => '',
 			// Unguessable directory segment under uploads; set once on install.
 			'backup_dirname'     => '',
 		);
@@ -159,6 +161,14 @@ class Simple_DB_Backup_Settings {
 		);
 
 		add_settings_field(
+			'backup_path',
+			__( 'Backup directory', 'simple-db-backup' ),
+			array( $this, 'render_backup_path_field' ),
+			self::PAGE_SLUG,
+			'simple_db_backup_backups'
+		);
+
+		add_settings_field(
 			'gzip',
 			__( 'Compress backups (gzip)', 'simple-db-backup' ),
 			array( $this, 'render_gzip_field' ),
@@ -238,10 +248,69 @@ class Simple_DB_Backup_Settings {
 			$clean['backup_dirname'] = $defaults['backup_dirname'];
 		}
 
+		// Custom backup directory (optional). Validated and hardened here.
+		$clean['backup_path'] = $this->sanitize_backup_path( $input, $current );
+
+		// Move existing backups if the effective directory changed.
+		$old_dir = Simple_DB_Backup_Filesystem::dir_for( $current );
+		$new_dir = Simple_DB_Backup_Filesystem::dir_for( $clean );
+		if ( $old_dir !== $new_dir && Simple_DB_Backup_Filesystem::prepare_dir( $new_dir ) ) {
+			Simple_DB_Backup_Filesystem::move_backups( $old_dir, $new_dir );
+		}
+
 		// Re-apply schedules to match the new frequencies.
 		add_action( 'shutdown', array( 'Simple_DB_Backup_Cron', 'reschedule_all' ) );
 
 		return $clean;
+	}
+
+	/**
+	 * Validate and prepare the optional custom backup directory.
+	 *
+	 * Returns the path to store: a valid, writable, hardened absolute path; ''
+	 * for the default location; or the previous value if the input is invalid.
+	 *
+	 * @param array<string,mixed> $input   Raw submitted values.
+	 * @param array<string,mixed> $current Current options.
+	 * @return string
+	 */
+	private function sanitize_backup_path( $input, $current ) {
+		$raw = isset( $input['backup_path'] ) ? trim( sanitize_text_field( wp_unslash( $input['backup_path'] ) ) ) : '';
+
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		$path = untrailingslashit( wp_normalize_path( $raw ) );
+
+		if ( ! path_is_absolute( $path ) ) {
+			add_settings_error(
+				self::OPTION_NAME,
+				'backup_path_relative',
+				__( 'The backup directory must be an absolute path. Keeping the previous location.', 'simple-db-backup' )
+			);
+			return (string) $current['backup_path'];
+		}
+
+		if ( ! Simple_DB_Backup_Filesystem::prepare_dir( $path ) ) {
+			add_settings_error(
+				self::OPTION_NAME,
+				'backup_path_unwritable',
+				__( 'The backup directory could not be created or is not writable. Keeping the previous location.', 'simple-db-backup' )
+			);
+			return (string) $current['backup_path'];
+		}
+
+		if ( Simple_DB_Backup_Filesystem::is_within_webroot( $path ) ) {
+			add_settings_error(
+				self::OPTION_NAME,
+				'backup_path_webroot',
+				__( 'Warning: this backup directory is inside the web root. The plugin adds .htaccess/web.config guards, but on some servers (e.g. nginx) those are ignored. Prefer a location outside the web root.', 'simple-db-backup' ),
+				'warning'
+			);
+		}
+
+		return $path;
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -253,11 +322,23 @@ class Simple_DB_Backup_Settings {
 	}
 
 	public function render_backups_section() {
-		$dir = Simple_DB_Backup_Filesystem::get_backup_dir();
-		echo '<p>' . sprintf(
-			/* translators: %s: absolute backup directory path. */
-			esc_html__( 'Backups are stored in %s.', 'simple-db-backup' ),
-			'<code>' . esc_html( $dir ) . '</code>'
+		echo '<p>' . esc_html__( 'Where backups are stored and how they are created.', 'simple-db-backup' ) . '</p>';
+	}
+
+	public function render_backup_path_field() {
+		$value      = (string) self::get( 'backup_path', '' );
+		$default    = Simple_DB_Backup_Filesystem::dir_for( array_merge( self::get_options(), array( 'backup_path' => '' ) ) );
+		$effective  = Simple_DB_Backup_Filesystem::get_backup_dir();
+		printf(
+			'<input type="text" class="regular-text code" name="%1$s[backup_path]" value="%2$s" placeholder="%3$s" />',
+			esc_attr( self::OPTION_NAME ),
+			esc_attr( $value ),
+			esc_attr( $default )
+		);
+		echo '<p class="description">' . sprintf(
+			/* translators: 1: current backup directory path. */
+			esc_html__( 'Absolute path to store backups. Leave blank to use the default location under uploads. Changing this moves existing backups. Current: %1$s', 'simple-db-backup' ),
+			'<code>' . esc_html( $effective ) . '</code>'
 		) . '</p>';
 	}
 
@@ -332,6 +413,7 @@ class Simple_DB_Backup_Settings {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<?php settings_errors( self::OPTION_NAME ); ?>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( self::SETTINGS_GROUP );

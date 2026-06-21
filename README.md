@@ -22,7 +22,8 @@ non-destructive tooling and removes everything that made the original risky.
 - Backup filenames confined to the managed directory (`basename()` + `realpath()` + extension
   allowlist) — no path-traversal download/delete.
 - Backups stored in an unguessable `wp-content/uploads/` subdirectory with `.htaccess` / `web.config`
-  / index guards and restrictive permissions.
+  / index guards and restrictive permissions. Optionally relocatable to any absolute path (validated,
+  hardened, with a warning if it sits inside the web root).
 - Multisite: restricted to network administrators.
 
 **Removed from the original:** empty/drop tables, arbitrary SQL execution, emailing backups, and

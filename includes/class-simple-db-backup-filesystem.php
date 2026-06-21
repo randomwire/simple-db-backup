@@ -26,24 +26,62 @@ class Simple_DB_Backup_Filesystem {
 	 * @return string
 	 */
 	public static function get_backup_dir() {
-		$uploads = wp_get_upload_dir();
-		$name    = (string) Simple_DB_Backup_Settings::get( 'backup_dirname', '' );
+		return self::dir_for( Simple_DB_Backup_Settings::get_options() );
+	}
 
-		if ( '' === $name ) {
-			// Should only happen before activation seeded a name; fail safe.
-			$name = 'sdb-backups';
+	/**
+	 * Resolve the backup directory for a given options array.
+	 *
+	 * A non-empty `backup_path` (an absolute path) wins; otherwise the default
+	 * unguessable folder under wp-content/uploads is used.
+	 *
+	 * @param array<string,mixed> $options Options array.
+	 * @return string Absolute path, no trailing slash.
+	 */
+	public static function dir_for( array $options ) {
+		$custom = isset( $options['backup_path'] ) ? trim( (string) $options['backup_path'] ) : '';
+		if ( '' !== $custom ) {
+			return untrailingslashit( wp_normalize_path( $custom ) );
 		}
+
+		$uploads = wp_get_upload_dir();
+		$name    = ! empty( $options['backup_dirname'] ) ? $options['backup_dirname'] : 'sdb-backups';
 
 		return untrailingslashit( $uploads['basedir'] ) . '/' . $name;
 	}
 
 	/**
-	 * Create the backup directory if needed and (re)write its protection files.
+	 * Whether a normalized absolute path lies inside the WordPress install
+	 * (and so is potentially reachable over the web).
+	 *
+	 * @param string $path Normalized absolute path.
+	 * @return bool
+	 */
+	public static function is_within_webroot( $path ) {
+		$root = untrailingslashit( wp_normalize_path( ABSPATH ) );
+		$path = untrailingslashit( wp_normalize_path( $path ) );
+		return $path === $root || 0 === strpos( $path . '/', $root . '/' );
+	}
+
+	/**
+	 * Create the default backup directory if needed and (re)write its guards.
 	 *
 	 * @return bool True if the directory exists and is writable afterwards.
 	 */
 	public static function ensure_protected_dir() {
-		$dir = self::get_backup_dir();
+		return self::prepare_dir( self::get_backup_dir() );
+	}
+
+	/**
+	 * Create a specific directory if needed and (re)write its protection files.
+	 *
+	 * @param string $dir Absolute directory path.
+	 * @return bool True if the directory exists and is writable afterwards.
+	 */
+	public static function prepare_dir( $dir ) {
+		if ( '' === $dir ) {
+			return false;
+		}
 
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
@@ -56,6 +94,37 @@ class Simple_DB_Backup_Filesystem {
 		self::write_protection_files( $dir );
 
 		return is_writable( $dir );
+	}
+
+	/**
+	 * Move all backup files from one directory to another.
+	 *
+	 * @param string $from Source directory.
+	 * @param string $to   Destination directory.
+	 */
+	public static function move_backups( $from, $to ) {
+		$from = untrailingslashit( (string) $from );
+		$to   = untrailingslashit( (string) $to );
+
+		if ( '' === $from || '' === $to || $from === $to || ! is_dir( $from ) || ! is_dir( $to ) ) {
+			return;
+		}
+
+		foreach ( (array) scandir( $from ) as $entry ) {
+			if ( ! self::has_allowed_extension( $entry ) ) {
+				continue;
+			}
+			$src = $from . '/' . $entry;
+			$dst = $to . '/' . $entry;
+			if ( ! is_file( $src ) ) {
+				continue;
+			}
+			if ( ! @rename( $src, $dst ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+				if ( @copy( $src, $dst ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+					wp_delete_file( $src );
+				}
+			}
+		}
 	}
 
 	/**

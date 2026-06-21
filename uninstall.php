@@ -9,9 +9,21 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-// Recover the backup directory name before deleting the option.
+// Resolve the effective backup directory before deleting the option: a custom
+// absolute path wins, otherwise the default folder under uploads.
 $options = get_option( 'simple_db_backup_options', array() );
-$dirname = is_array( $options ) && ! empty( $options['backup_dirname'] ) ? $options['backup_dirname'] : '';
+$options = is_array( $options ) ? $options : array();
+$custom  = ! empty( $options['backup_path'] ) ? trim( (string) $options['backup_path'] ) : '';
+$dirname = ! empty( $options['backup_dirname'] ) ? $options['backup_dirname'] : '';
+
+if ( '' !== $custom ) {
+	$dir = untrailingslashit( wp_normalize_path( $custom ) );
+} elseif ( '' !== $dirname ) {
+	$uploads = wp_get_upload_dir();
+	$dir     = untrailingslashit( $uploads['basedir'] ) . '/' . basename( $dirname );
+} else {
+	$dir = '';
+}
 
 // Remove the stored options.
 delete_option( 'simple_db_backup_options' );
@@ -25,34 +37,33 @@ foreach ( array(
 	wp_clear_scheduled_hook( $hook );
 }
 
-// Remove the backup directory and its contents (confined to uploads).
-if ( '' !== $dirname ) {
-	$uploads = wp_get_upload_dir();
-	$dir     = untrailingslashit( $uploads['basedir'] ) . '/' . basename( $dirname );
+// Remove only our own files (backups + guards + stray credentials files), then
+// the directory if it ends up empty. We never blanket-delete folder contents,
+// since a custom path may sit alongside unrelated files.
+if ( '' !== $dir && is_dir( $dir ) ) {
+	$files = array();
 
-	if ( is_dir( $dir ) && 0 === strpos( $dir, untrailingslashit( $uploads['basedir'] ) ) ) {
-		$items = glob( $dir . '/*' );
-		if ( is_array( $items ) ) {
-			foreach ( $items as $item ) {
-				if ( is_file( $item ) ) {
-					wp_delete_file( $item );
-				}
-			}
+	foreach ( array( '*.sql', '*.sql.gz' ) as $pattern ) {
+		$matches = glob( $dir . '/' . $pattern );
+		if ( is_array( $matches ) ) {
+			$files = array_merge( $files, $matches );
 		}
-		// Remove protection dotfiles and any leftover temporary credentials files.
-		$dotfiles = array( '.htaccess', 'web.config', 'index.php', 'index.html' );
-		$leftover = glob( $dir . '/.sdb-*.cnf' );
-		if ( is_array( $leftover ) ) {
-			foreach ( $leftover as $cnf ) {
-				$dotfiles[] = basename( $cnf );
-			}
-		}
-		foreach ( $dotfiles as $dotfile ) {
-			$path = $dir . '/' . $dotfile;
-			if ( is_file( $path ) ) {
-				wp_delete_file( $path );
-			}
-		}
-		@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 	}
+
+	$leftover = glob( $dir . '/.sdb-*.cnf' );
+	if ( is_array( $leftover ) ) {
+		$files = array_merge( $files, $leftover );
+	}
+
+	foreach ( array( '.htaccess', 'web.config', 'index.php', 'index.html' ) as $dotfile ) {
+		$files[] = $dir . '/' . $dotfile;
+	}
+
+	foreach ( $files as $file ) {
+		if ( is_file( $file ) ) {
+			wp_delete_file( $file );
+		}
+	}
+
+	@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged — only succeeds if now empty.
 }
